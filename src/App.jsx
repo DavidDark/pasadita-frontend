@@ -1,11 +1,11 @@
-import CardSearch from './components/searchCards';
+import CustomNavbar from './components/CustomNavbar'
 import './App.css'
 
 function App() {
 
   return (
     <div>
-        <CardSearch/>
+        <CustomNavbar/>
     </div>
   )
 }

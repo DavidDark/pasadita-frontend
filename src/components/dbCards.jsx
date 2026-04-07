@@ -1,40 +1,43 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import axios from 'axios';
 
-export default function CardSearch() {
+export default function DBCards() {
   const [query, setQuery] = useState("");
   const [cards, setCards] = useState([]);
   const [loading, setLoading] = useState(false);
 
+  const getInventory = () => {
+    console.log("Setting Home")
+
+    axios.get(`http://localhost:3000/cards/`, {
+      headers: {
+        'Content-Type': "application/json"
+      }
+    }).then((response) => {
+      const cards = response.data.cards;
+      setCards(cards);
+    })
+    .catch (err => {
+      console.error("Error:", err);
+    })
+  };
+
+  useEffect(() => {
+    getInventory();
+  }, []);
+
   const searchCards = async () => {
     if (!query) return;
-
     setLoading(true);
 
     try {
       //Search Cards
       const res = await fetch(
-        `http://localhost:3000/cards/search_name?name=${encodeURIComponent(query)}`
+        `http://localhost:3000/cards/stock_name?name=${encodeURIComponent(query)}`
       );
       const cards = await res.json();
 
-      //Search Stock
-      const stockRes = await fetch(
-        `http://localhost:3000/cards/stock_name?name=${encodeURIComponent(query)}`
-      );
-      const stockData = await stockRes.json();
-
-      const stockMap = {};
-      stockData.forEach(item => {
-        stockMap[item._id] = item.stock;
-      });
-
-      const mergedStock = cards.map(card => ({
-        ...card,
-        stock: stockMap[card.id] ?? 0
-      }));
-
-      setCards(mergedStock);
+      setCards(cards);
 
     } catch (err) {
       console.error("Error:", err);
@@ -44,59 +47,53 @@ export default function CardSearch() {
   };
 
   const addtoStock = async (card) => {
-
     if(!card) return;
 
-    const req = {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json'},
-      body: JSON.stringify({
-        card_id : card.id, 
-        name: card.name,
-        tcg: "MTG",
-        released_at: card.released_at,
-        type_line: card.type_line,
-        colors: card.colors,
-        set: card.set,
-        set_code: card.set_code,
-        set_type: card.set_type,
-        set_uri: card.set_uri,
-        collector_number: card.collector_number,
-        rarity: card.rarity,
-        imgurl: card.image,
-        finish: card.finish,
-        listedprice: 0,
-        stock: card.stock,
-      })
-    };
+    const body = {
+      card_id : card._id,
+      name: card.name,
+      tcg: "MTG",
+      released_at: card.released_at,
+      type_line: card.type_line,
+      colors: card.colors,
+      set: card.set,
+      set_code: card.set_code,
+      set_type: card.set_type,
+      set_uri: card.set_uri,
+      collector_number: card.collector_number,
+      rarity: card.rarity,
+      imgurl: card.imgurl,
+      finish: card.finish,
+      listedprice: 0,
+      stock: card.stock,
+    }
 
-    try {
-      const response = await fetch(
-        `http://localhost:3000/cards/add_inventory`,
-        req
-      );
-
-      const data = await response.json();
+    await axios.post(`http://localhost:3000/cards/add_inventory`,
+      body,
+      {
+        headers: { 'Content-Type': 'application/json'}
+      }
+    ).then(response => {
+      const data = response.data;
       alert("Card added to stock.");
       console.log(data);
 
       const update = cards.map( item => 
-        item.id === card.id ? { ...item, stock: card.stock + 1 } : item
+        item._id === card._id ? { ...item, stock: card.stock + 1 } : item
       );
 
       setCards(update);
-
-    } catch(err){
+    }).catch(err => {
       console.log(err);
       alert("Error adding card to stock.");
-    }
+    });
   }
 
   const removeFromStock = (card) => {
     if(!card) return;
 
     const body = {
-      card_id : card.id,
+      card_id : card._id,
     }
 
     axios.patch(
@@ -111,7 +108,7 @@ export default function CardSearch() {
       console.log(data);
 
       const update = cards.map( item => 
-        item.id === card.id ? { ...item, stock: card.stock - 1 } : item
+        item._id === card._id && card.stock != 0 ? { ...item, stock: card.stock - 1 } : item
       );
 
       setCards(update);
@@ -123,12 +120,11 @@ export default function CardSearch() {
 
   return (
     <div style={{ padding: "20px", fontFamily: "Arial" }}>
-      <h2>Buscar cartas Magic</h2>
 
       <div style={{ marginBottom: "20px" }}>
         <input
           type="text"
-          placeholder="Ej: Lightning Bolt"
+          placeholder="Buscar en inventario."
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           style={{ padding: "8px", width: "250px", marginRight: "10px" }}
@@ -148,9 +144,9 @@ export default function CardSearch() {
           gap: "20px"
         }}
       >
-        {cards.map((card) => (
+        { cards && cards.map((card) => (
           <div
-            key={card.id}
+            key={card._id}
             style={{
               border: "1px solid #ccc",
               borderRadius: "8px",
@@ -158,11 +154,17 @@ export default function CardSearch() {
               textAlign: "center"
             }}
           >
-            {card.image && (
+            {card.imgurl && (
               <img
-                src={card.image}
+                src={card.imgurl}
                 alt={card.name}
-                style={{ width: "100%", borderRadius: "4px" }}
+                style={{ 
+                  width: "100%",
+                  borderRadius: "4px",
+                  filter: card.stock === 0 ? "grayscale(100%)" : "grayscale(0%)",
+                  opacity: card.stock === 0 ? 0.6 : 1,
+                  transition: "all 0.3s ease",
+                }}
               />
             )}
 
