@@ -3,7 +3,7 @@ import axios from 'axios';
 
 import { FaRegTrashCan } from 'react-icons/fa6';
 
-export default function DBCards() {
+export default function Wishlist() {
   const [query, setQuery] = useState("");
   const [cards, setCards] = useState([]);
   const [loading, setLoading] = useState(false);

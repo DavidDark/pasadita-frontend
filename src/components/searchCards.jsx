@@ -123,7 +123,7 @@ export default function CardSearch() {
 
   return (
     <div style={{ padding: "20px", fontFamily: "Arial" }}>
-      <h2>Buscar cartas Magic</h2>
+      <h2>Buscar cartas:</h2>
 
       <div style={{ marginBottom: "20px" }}>
         <input
